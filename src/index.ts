@@ -1,5 +1,5 @@
-import { Container, loadBalance, getContainer } from "@cloudflare/containers";
-import { Hono } from "hono";
+import {Container, getContainer, loadBalance} from "@cloudflare/containers";
+import {Hono} from "hono";
 
 export class MyContainer extends Container {
   // Port the container listens on (default: 8080)
@@ -34,12 +34,23 @@ const app = new Hono<{
 app.get("/", (c) => {
   return c.text(
     "Available endpoints:\n" +
-      "GET /container/<ID> - Start a container for each ID with a 2m timeout\n" +
-      "GET /lb - Load balance requests over multiple containers\n" +
-      "GET /error - Start a container that errors (demonstrates error handling)\n" +
-      "GET /singleton - Get a single specific container instance",
+    "GET /container/<ID> - Start a container for each ID with a 2m timeout\n" +
+    "GET /lb - Load balance requests over multiple containers\n" +
+    "GET /error - Start a container that errors (demonstrates error handling)\n" +
+    "GET /singleton - Get a single specific container instance\n" +
+    "GET /fetch-image?url=<IMAGE_URL> - Proxy an image through the container\n"
   );
 });
+
+app.get("/fetch-image", async (c) => {
+  const imageUrl = c.req.query("url");
+  if (!imageUrl) {
+    return c.text("Missing ?url=… parameter", 400);
+  }
+  const container = getContainer(c.env.MY_CONTAINER);
+  return await container.fetch(c.req.raw);
+});
+
 
 // Route requests to a specific container using the container ID
 app.get("/container/:id", async (c) => {
